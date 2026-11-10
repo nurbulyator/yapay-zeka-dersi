@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+test_data/
+results/*.csv
+!results/benchmark_summary.csv
+.streamlit/secrets.toml
+.DS_Store
+Thumbs.db

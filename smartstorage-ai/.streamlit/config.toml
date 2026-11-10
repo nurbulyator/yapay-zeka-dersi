@@ -1,0 +1,14 @@
+# [v2/C5] Yalnızca bu bilgisayardan erişilebilir; telemetri kapalı.
+[server]
+address = "localhost"
+headless = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[theme]
+base = "light"
+
+[client]
+toolbarMode = "minimal"
