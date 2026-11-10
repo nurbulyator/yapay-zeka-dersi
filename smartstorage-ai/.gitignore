@@ -9,3 +9,4 @@ results/*.csv
 .streamlit/secrets.toml
 .DS_Store
 Thumbs.db
+/*.log
