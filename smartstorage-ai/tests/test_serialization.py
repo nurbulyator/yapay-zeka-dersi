@@ -15,7 +15,7 @@ def test_csv_columns_and_rows():
     rows = list(csv.DictReader(io.StringIO(to_csv(p, r))))
     assert list(rows[0].keys()) == CSV_COLUMNS
     assert len(rows) == p.n_files
-    assert {row["action"] for row in rows} <= {"KEEP", "COMPRESS", "MOVE"}
+    assert {row["action"] for row in rows} <= {"KEEP", "COMPRESS", "MOVE", "DELETE"}
 
 
 def test_formula_injection_sanitized():

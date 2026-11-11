@@ -49,6 +49,8 @@ def generate_candidates(f: FileInfo, prefs: Preferences, capacities: dict[str, i
         for vid in sorted(capacities):
             if vid != prefs.source_volume_id and f.size_bytes <= capacities[vid]:
                 out.append(_candidate(f, ActionKind.MOVE, vid, f.size_bytes, f.size_bytes, weights))
+    if prefs.allow_delete:
+        out.append(_candidate(f, ActionKind.DELETE, None, f.size_bytes, 0, weights))
     out.sort(key=lambda c: (KIND_ORDER[c.kind], c.destination_volume_id or ""))
     return tuple(out)
 

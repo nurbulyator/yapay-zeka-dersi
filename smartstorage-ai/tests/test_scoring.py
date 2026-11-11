@@ -42,6 +42,19 @@ def test_source_gain_correct():
     assert ev.feasible
 
 
+def test_delete_frees_space_only_when_explicitly_allowed():
+    file = fi("a", 100)
+    disabled = build_problem([file], disks(), prefs(50, compress=False, move=False))
+    enabled = build_problem([file], disks(), prefs(50, compress=False, move=False,
+                                                   allow_delete=True))
+
+    assert proof_of_infeasibility(disabled)
+    delete_index = idx(enabled, 0, ActionKind.DELETE)
+    ev = evaluate(enabled, (delete_index,))
+    assert ev.feasible and ev.gain_bytes == file.size_bytes
+    assert not proof_of_infeasibility(enabled)
+
+
 def test_aggregate_capacity_constraint():
     # D has 1 GiB free -> 1 GiB - 256 MiB reserve = 768 MiB available; two 500 MiB moves don't fit
     p = build_problem([fi("a", 500), fi("b", 500)], disks(1), prefs(900, compress=False))
@@ -56,7 +69,7 @@ def test_aggregate_capacity_constraint():
 
 def test_high_importance_costs_more():
     w = PRESETS["balanced"]
-    for kind in (ActionKind.COMPRESS, ActionKind.MOVE):
+    for kind in (ActionKind.COMPRESS, ActionKind.MOVE, ActionKind.DELETE):
         assert action_cost(9, kind, 10, 0.2, 0.5, w) > action_cost(1, kind, 10, 0.2, 0.5, w)
 
 

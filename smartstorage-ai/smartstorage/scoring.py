@@ -11,10 +11,29 @@ from .models import (MIB, ActionKind, CandidateAction, Evaluation, FileInfo,
                      ReasonCode, ResultStatus)
 
 # ---------------------------------------------------------------- constants
-IMPACT = {ActionKind.KEEP: 0.0, ActionKind.COMPRESS: 0.6, ActionKind.MOVE: 0.4}
-RISK = {ActionKind.KEEP: 0.0, ActionKind.COMPRESS: 0.3, ActionKind.MOVE: 0.2}
-ACCESS = {ActionKind.KEEP: 0.0, ActionKind.COMPRESS: 1.0, ActionKind.MOVE: 0.5}
-THROUGHPUT_BPS = {ActionKind.COMPRESS: 50 * MIB, ActionKind.MOVE: 100 * MIB}
+IMPACT = {
+    ActionKind.KEEP: 0.0,
+    ActionKind.COMPRESS: 0.6,
+    ActionKind.MOVE: 0.4,
+    ActionKind.DELETE: 1.0,
+}
+RISK = {
+    ActionKind.KEEP: 0.0,
+    ActionKind.COMPRESS: 0.3,
+    ActionKind.MOVE: 0.2,
+    ActionKind.DELETE: 1.0,
+}
+ACCESS = {
+    ActionKind.KEEP: 0.0,
+    ActionKind.COMPRESS: 1.0,
+    ActionKind.MOVE: 0.5,
+    ActionKind.DELETE: 0.0,
+}
+THROUGHPUT_BPS = {
+    ActionKind.COMPRESS: 50 * MIB,
+    ActionKind.MOVE: 100 * MIB,
+    ActionKind.DELETE: 100 * MIB,
+}
 PER_FILE_OVERHEAD_S = 0.05
 
 PRESETS = {
@@ -80,6 +99,9 @@ def is_allowed(problem: Problem, f: FileInfo, c: CandidateAction) -> bool:
                 and d in prefs.allowed_destination_volume_ids and d in problem.capacities
                 and c.source_gain_bytes == f.size_bytes
                 and c.destination_use_bytes == f.size_bytes)
+    if c.kind == ActionKind.DELETE:
+        return (prefs.allow_delete and c.destination_volume_id is None
+                and c.source_gain_bytes == f.size_bytes and c.destination_use_bytes == 0)
     return False
 
 
@@ -156,17 +178,23 @@ def all_keep(problem: Problem) -> tuple[int, ...]:
 def upper_bounds(problem: Problem) -> tuple[int, int]:
     """(UB ignoring capacity, capacity-aware UB) on attainable source gain."""
     ub = 0
-    cg_total = 0
+    unbounded_total = 0
     move_extra = 0
     for f, cands in zip(problem.files, problem.candidates):
         max_gain = max(c.source_gain_bytes for c in cands)
         ub += max_gain
-        cg = max((c.source_gain_bytes for c in cands if c.kind == ActionKind.COMPRESS), default=0)
-        cg_total += cg
-        if any(c.kind == ActionKind.MOVE for c in cands):
-            move_extra += f.size_bytes - cg
+        non_move_gain = max(
+            (c.source_gain_bytes for c in cands if c.kind != ActionKind.MOVE),
+            default=0,
+        )
+        max_move_gain = max(
+            (c.source_gain_bytes for c in cands if c.kind == ActionKind.MOVE),
+            default=0,
+        )
+        unbounded_total += non_move_gain
+        move_extra += max(0, max_move_gain - non_move_gain)
     cap_total = sum(problem.capacities.values())
-    ub_cap = cg_total + min(cap_total, move_extra)
+    ub_cap = unbounded_total + min(cap_total, move_extra)
     return ub, ub_cap
 
 

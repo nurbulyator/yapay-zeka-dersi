@@ -84,6 +84,9 @@ def explain_action(problem: Problem, f: FileInfo, c: CandidateAction) -> str:
                 f"Kaynakta tahmini {fmt_bytes(c.source_gain_bytes)} yer açılır; {dst} üzerinde "
                 f"{fmt_bytes(c.destination_use_bytes)} kapasite gerekir. Önem {f.importance}/9; "
                 f"maliyet {_num(c.total_cost, 2)}.")
+    if c.kind == ActionKind.DELETE:
+        return (f"{name}: Silme önerisi; tahmini kaynak alan kazancı "
+                f"{fmt_bytes(c.source_gain_bytes)}. Bu plan dosyayı silmez.")
     if f.skip_reason:
         return f"{name}: {SKIP_TR.get(f.skip_reason, 'Yalnızca KEEP uygun.')}"
     return f"{name}: Olduğu yerde bırakıldı (hedef için değiştirilmesi gerekmedi)."

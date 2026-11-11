@@ -164,6 +164,7 @@ def scan(roots: Sequence[str], *, max_files: int = DEFAULT_MAX_FILES,
     source_volume_id = f"dev:{source_dev:x}"
 
     files: list[FileInfo] = []
+    directories = [str(r) for r in resolved]
     skipped: list[tuple[str, str]] = []
     warnings: list[str] = []
     reason_codes: set[str] = set()
@@ -190,7 +191,7 @@ def scan(roots: Sequence[str], *, max_files: int = DEFAULT_MAX_FILES,
                     break
                 path = entry.path
                 try:
-                    st = entry.stat(follow_symlinks=False)
+                    st = os.stat(path, follow_symlinks=False)
                 except OSError as exc:
                     skipped.append((path, f"Bilgi okunamadı: {type(exc).__name__}"))
                     reason_codes.add(ReasonCode.SCAN_INCOMPLETE.value)
@@ -210,6 +211,7 @@ def scan(roots: Sequence[str], *, max_files: int = DEFAULT_MAX_FILES,
                     if reason:
                         skipped.append((path, reason))
                         continue
+                    directories.append(path)
                     subdirs.append(path)
                     continue
                 if not stat_mod.S_ISREG(st.st_mode):
@@ -243,7 +245,7 @@ def scan(roots: Sequence[str], *, max_files: int = DEFAULT_MAX_FILES,
         roots=tuple(str(r) for r in resolved), files=files_t,
         total_bytes=sum(f.size_bytes for f in files_t), warnings=tuple(warnings),
         skipped=tuple(skipped), truncated=truncated, source_volume_id=source_volume_id,
-        reason_codes=tuple(sorted(reason_codes)),
+        reason_codes=tuple(sorted(reason_codes)), directories=tuple(directories),
     )
 
 

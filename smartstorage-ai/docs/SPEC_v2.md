@@ -263,17 +263,18 @@ For each FileInfo (stable file ID order):
 2. If protected or not eligible => stop.
 3. If allow_compress and positive credible compress gain => emit COMPRESS with source_gain=gain, dest=None, compression time estimate and access/risk penalty.
 4. If allow_move: for each permitted destination volume d different from source, writable and confidently identified => emit MOVE(source_gain=file.size_bytes, destination_use=file.size_bytes, target=d), provided the individual file can fit in the *nominal* available capacity; the final plan evaluator still checks aggregate capacity.
-5. Compute all costs in `scoring.py` from fixed transparent coefficients. Choose one action per file, never combine COMPRESS+MOVE on same file in MVP. More complex actions are future modules, not covertly added.
-6. Sort candidates consistently by `(file_id, kind, destination_volume_id)` for deterministic runs.
+5. **Presentation-layer extension:** if `allow_delete` is explicitly enabled, emit DELETE(source_gain=file.size_bytes, destination_use=0). DELETE is an opt-in recommendation only; no code executes it. It is generated only for otherwise eligible, unprotected files.
+6. Compute all costs in `scoring.py` from fixed transparent coefficients. Choose one action per file, never combine actions on the same file.
+7. Sort candidates consistently by `(file_id, kind, destination_volume_id)` for deterministic runs.
 
 **[v2/C10] Fixed default coefficients (heuristic, not probabilities; recorded in every report):**
 
 | Constant | Value |
 |---|---|
-| impact KEEP / COMPRESS / MOVE | 0 / 0.6 / 0.4 |
-| risk_score COMPRESS / MOVE | 0.3 / 0.2 |
-| access_penalty COMPRESS / MOVE | 1.0 (file must be extracted to use) / 0.5 (location changes) |
-| nominal throughput COMPRESS / MOVE | 50 MiB/s / 100 MiB/s, plus 0.05 s overhead per file |
+| impact KEEP / COMPRESS / MOVE / DELETE | 0 / 0.6 / 0.4 / 1.0 |
+| risk_score COMPRESS / MOVE / DELETE | 0.3 / 0.2 / 1.0 |
+| access_penalty COMPRESS / MOVE / DELETE | 1.0 (file must be extracted to use) / 0.5 (location changes) / 0 |
+| nominal throughput COMPRESS / MOVE / DELETE | 50 MiB/s / 100 MiB/s / 100 MiB/s, plus 0.05 s overhead per file |
 | time unit | minutes (`estimated_seconds / 60`) |
 
 | Preset | w_impact | w_time | w_risk | w_access |
@@ -303,9 +304,9 @@ For plan P, let:
 
 **[v2/C4] Calibration:** `alpha = penalty_factor * r_max * goal`, where `r_max = max(total_cost / source_gain_bytes)` over all non-KEEP candidates and `penalty_factor = 2`. Then the penalty for any shortfall `s` is at least `2 * r_max * s`, which exceeds the cost of any set of actions that would close it. Dropping a useful action is therefore never energy-improving. Capacity violations are rejected outright, never merely penalised, so the `beta` term is always 0 in practice. Never return an infeasible plan as successful.
 
-**[v2/C15] Capacity-aware upper bound.** With `cg_i` the credible compress gain of file *i* (0 if none) and `M` the set of files with at least one MOVE candidate:
+**[v2/C15] Capacity-aware upper bound.** For file *i*, let `base_i` be its maximum gain among non-MOVE actions (KEEP, COMPRESS, and optional DELETE), and `move_i = max(0, max_move_gain_i - base_i)`:
 `UB = sum_i max_gain_i`, and
-`UB_cap = sum_i cg_i + min(sum_d capacity(d), sum_{i in M} (size_i - cg_i))`.
+`UB_cap = sum_i base_i + min(sum_d capacity(d), sum_i move_i)`.
 If `min(UB, UB_cap) < goal`, the instance is `PROVEN_INFEASIBLE` (reason `INSUFFICIENT_THEORETICAL_GAIN`, plus `DESTINATION_CAPACITY` if only `UB_cap` fails). The bound proves impossibility; it never proves feasibility.
 
 **[v2/C15] Complexity note.** Choosing one action per file to cover a gain target at minimum cost under several destination capacities generalises the 0/1 knapsack problem, so the problem is NP-hard. This justifies heuristic search and limits brute force to tiny instances. Better design: never propose a candidate that violates a hard permission/capacity constraint; permit goal shortfall during search with penalty. Keep a separate `best_feasible` tracker. Do not compare raw feasible cost with infeasible penalized energy as if both were business costs.
@@ -367,6 +368,7 @@ Pure deterministic templates in Turkish; NO LANGUAGE MODEL. Per action examples:
 - COMPRESS: “`logs.txt`: Kayıpsız sıkıştırma önerildi. Tahmini kaynak alan kazancı 380 MiB; önem 1/10; işlem maliyeti 2,3. Kazanç tahminidir; dosya henüz değiştirilmedi.”
 - MOVE: “`video.mp4`: C: kaynak hacminden D: hedef hacmine taşıma önerildi. Kaynakta tahmini 1,8 GiB yer açılır; D: üzerinde 1,8 GiB kapasite gerekir.”
 - KEEP: “`family_photos`: Koruma kuralı nedeniyle olduğu yerde bırakıldı.”
+- DELETE: “`old_backup.zip`: Silme önerisi; tahmini kaynak alan kazancı 380 MiB. Bu plan dosyayı silmez.”
 - **[v2/C13]** Importance is displayed as `önem 1/9`, `5/9`, `9/9`, not `/10`.
 - No solution: “İzinli işlemler ve mevcut hedef hacim kapasiteleriyle 10 GiB hedefe ulaşılabilecek plan bulunamadı.”
 
@@ -388,6 +390,8 @@ Suggested sections:
 8. **Dışa aktar:** CSV + JSON with timestamps and parameters; file path privacy warning.
 
 Store scan/results with Streamlit session state keyed by configuration hashes; invalidate stale optimization if inputs change. Catch exceptions and show useful user-facing errors without raw stack traces by default. Core functionality must be importable / tested without Streamlit.
+
+The simplified, separate `presentation/app.py` entry point adds a target-space input and opt-in Archive / Move / Delete recommendations. Archive savings are estimated from compression samples. Move requires an existing destination directory on a different eligible drive. It compares all three search algorithms; like the original UI, it only proposes actions and never modifies files.
 
 ## 16. CSV / JSON REPORT CONTRACT
 

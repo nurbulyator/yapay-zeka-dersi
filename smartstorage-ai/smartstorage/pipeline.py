@@ -21,7 +21,7 @@ def analyze_folders(roots: Iterable[str], protected_roots: Iterable[str] = (),
                importance_rules=importance_rules, now=now)
     files, warns = estimate_files(res.files)
     return ScanResult(res.roots, files, res.total_bytes, res.warnings + warns, res.skipped,
-                      res.truncated, res.source_volume_id, res.reason_codes)
+                      res.truncated, res.source_volume_id, res.reason_codes, res.directories)
 
 
 @dataclass(frozen=True)

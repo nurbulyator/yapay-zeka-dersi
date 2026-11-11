@@ -30,6 +30,17 @@ def test_move_disabled_no_move():
     assert ActionKind.MOVE not in kinds(p)
 
 
+def test_delete_is_opt_in_and_cannot_change_protected_files():
+    files = [fi("a", 100), fi("b", 100, protected=True)]
+    default_problem = build_problem(files, disks(), prefs(50, move=False))
+    delete_problem = build_problem(files, disks(), prefs(50, compress=False, move=False,
+                                                        allow_delete=True))
+
+    assert ActionKind.DELETE not in kinds(default_problem, 0)
+    assert ActionKind.DELETE in kinds(delete_problem, 0)
+    assert ActionKind.DELETE not in kinds(delete_problem, 1)
+
+
 def test_move_never_within_same_volume():
     p = build_problem([fi("a", 100)], disks(10), prefs(50, dests=("sim:C",)))
     assert ActionKind.MOVE not in kinds(p)

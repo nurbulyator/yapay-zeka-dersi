@@ -22,6 +22,7 @@ Ajan, **her dosya için** tek bir eylem seçer:
 | **KEEP** (olduğu yerde bırak) | 0 | 0 |
 | **COMPRESS** (kayıpsız sıkıştır) | tahmini sıkıştırma kazancı | 0 |
 | **MOVE** (başka hacme taşı) | dosya boyutu | dosya boyutu |
+| **DELETE** (yalnızca yeni arayüzde isteğe bağlı öneri) | dosya boyutu | 0 |
 
 Amaç **en çok dosyayı değiştirmek değil**, hedefe **en düşük toplam müdahale maliyetiyle** ulaşmaktır. Uygun plan yoksa sistem bunu dürüstçe söyler (`PROVEN_INFEASIBLE` veya `NO_FEASIBLE_FOUND`).
 
@@ -37,7 +38,7 @@ Yapay zekâ yalnızca model eğitimi değildir. Bu proje dersin **klasik yapay z
 |---|---|
 | **P**erformans | Kaynak hacimde hedef ek boş alan; minimum toplam müdahale maliyeti; korunan dosyalara ve kapasitelere uyum; açıklanabilir öneriler |
 | **E**nvironment (çevre) | Yerel dosya sistemi meta verisi, kaynak/hedef hacimler, kullanıcı tercihleri. Kısmen gözlenebilir: dosyanın gerçek önemi ve gerçek sıkıştırılabilirliği bilinmez |
-| **A**ctuators (eyleyiciler) | KEEP / COMPRESS / MOVE **öneri** planı, CSV/JSON rapor. MVP'de diskte değişiklik yoktur |
+| **A**ctuators (eyleyiciler) | KEEP / COMPRESS / MOVE / isteğe bağlı DELETE **öneri** planı, CSV/JSON rapor. MVP'de diskte değişiklik yoktur |
 | **S**ensors (algılayıcılar) | Klasör tarama, dosya meta verisi, sınırlı içerik örneklemesi, `psutil` hacim bilgisi, kullanıcı girdileri |
 
 Döngü: **algıla** (tara) → **düşün** (aday eylemleri üret, maliyetleri hesapla, ara) → **eyle** (planı öner ve gerekçelendir).
@@ -83,6 +84,10 @@ streamlit run app.py
 ```
 
 Tarayıcıda `http://localhost:8501` açılır. Uygulama `.streamlit/config.toml` ile **yalnızca bu bilgisayara** (`localhost`) bağlanır ve Streamlit telemetrisi kapalıdır. Aynı Wi-Fi'deki biri uygulamanıza erişemez.
+
+Sade dosya tarama ve planlama arayüzünü çalıştırmak için proje kökünde `streamlit run presentation\app.py` komutunu kullanın. Tarama sonrasında klasörler ağaç görünümünde listelenir. Her dosya önem puanını kapsayan klasörden devralır; bir klasör puanını değiştirmek alt öğelere uygulanır, tek bir dosyayı veya alt klasörü ayrıca değiştirebilir ve **Inherit** ile tekrar devralmaya alabilirsiniz. Planlama bu bireysel puanları kullanır. Hedef boş alanı girin, arşivleme/sıkıştırma, taşıma ve silme önerilerine izin verin; **Keep** her zaman kullanılabilir. Test aşamasında taşıma için aynı sürücü dâhil herhangi bir var olan klasör seçilebilir. Aynı sürücü hedefi ayrı bir simüle edilmiş hedef olarak planlanır; gerçek bir taşıma aynı sürücüde fiziksel olarak boş alan açmaz. Hiçbir dosya taşınmaz veya silinmez. Uygulama Greedy, Hill Climbing ve Simulated Annealing planlarını karşılaştırır.
+
+Arşivleme kazancı örneklemeye dayalı tahmindir; gerçek bir arşiv oluşturulmaz. Taşıma ve silme yalnızca planda önerilir; hiçbir dosya değiştirilmez. Eski arayüz `streamlit run app.py` ile değişmeden kullanılabilir.
 
 ## 4. Demo senaryosu (sunum için)
 

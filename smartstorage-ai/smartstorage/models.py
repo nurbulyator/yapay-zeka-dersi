@@ -13,10 +13,16 @@ class ActionKind(str, Enum):
     KEEP = "KEEP"
     COMPRESS = "COMPRESS"
     MOVE = "MOVE"
+    DELETE = "DELETE"
 
 
 #: Stable ordering used for deterministic candidate sorting.
-KIND_ORDER = {ActionKind.KEEP: 0, ActionKind.COMPRESS: 1, ActionKind.MOVE: 2}
+KIND_ORDER = {
+    ActionKind.KEEP: 0,
+    ActionKind.COMPRESS: 1,
+    ActionKind.MOVE: 2,
+    ActionKind.DELETE: 3,
+}
 
 
 class PlanStatus(str, Enum):
@@ -131,6 +137,7 @@ class Preferences:
     protected_root_paths: tuple[str, ...] = ()
     priority: str = Priority.BALANCED.value
     destination_safety_fraction: float = 0.05
+    allow_delete: bool = False
 
 
 @dataclass(frozen=True)
@@ -196,3 +203,4 @@ class ScanResult:
     truncated: bool
     source_volume_id: str | None
     reason_codes: tuple[str, ...] = ()
+    directories: tuple[str, ...] = ()

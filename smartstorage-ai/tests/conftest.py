@@ -52,8 +52,10 @@ def disks(*dest_free_gib: float):
     return tuple(out)
 
 
-def prefs(goal_mib: float, compress=True, move=True, dests=("sim:D",), priority="balanced"):
-    return Preferences("sim:C", int(goal_mib * MIB), compress, move, tuple(dests), (), priority)
+def prefs(goal_mib: float, compress=True, move=True, dests=("sim:D",), priority="balanced",
+          allow_delete=False):
+    return Preferences("sim:C", int(goal_mib * MIB), compress, move, tuple(dests), (), priority,
+                       allow_delete=allow_delete)
 
 
 @pytest.fixture
